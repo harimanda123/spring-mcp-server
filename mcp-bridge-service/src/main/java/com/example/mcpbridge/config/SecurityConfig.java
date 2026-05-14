@@ -5,12 +5,17 @@ import com.example.mcpbridge.security.RateLimitingFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
+import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.access.expression.DefaultWebSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.DefaultMethodSecurityExpressionHandler;
+import org.springframework.security.access.expression.method.MethodSecurityExpressionHandler;
 
 import java.util.Map;
 
@@ -31,6 +36,28 @@ import java.util.Map;
 public class SecurityConfig {
 
     private final AppProperties appProperties;
+
+    // -----------------------------------------------------------------------
+    // Role hierarchy: WRITE > READ
+    // A WRITE key holder can call all READ tools without needing a separate READ key.
+    // -----------------------------------------------------------------------
+
+    @Bean
+    public RoleHierarchy roleHierarchy() {
+        return RoleHierarchyImpl.fromHierarchy("ROLE_WRITE > ROLE_READ");
+    }
+
+    /**
+     * Propagates the role hierarchy into method-level security expressions
+     * so that {@code @PreAuthorize("hasRole('READ')")} is satisfied by both
+     * ROLE_READ and ROLE_WRITE principals.
+     */
+    @Bean
+    public MethodSecurityExpressionHandler methodSecurityExpressionHandler(RoleHierarchy roleHierarchy) {
+        DefaultMethodSecurityExpressionHandler handler = new DefaultMethodSecurityExpressionHandler();
+        handler.setRoleHierarchy(roleHierarchy);
+        return handler;
+    }
 
     // -----------------------------------------------------------------------
     // Filter beans

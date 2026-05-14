@@ -19,11 +19,11 @@ import java.util.List;
  * {@code MethodToolCallbackProvider} in {@link com.example.mcpbridge.config.McpToolsConfig}
  * can register them with the MCP server.
  *
- * <p>Role-based access control is enforced via {@link PreAuthorize}:
- * <ul>
- *   <li>READ role  — may call the two query tools.</li>
- *   <li>WRITE role  — currently same access as READ (no write-only tools defined).</li>
- * </ul>
+ * <p>Role-based access control is enforced via {@link PreAuthorize}.
+ * All three tools require {@code ROLE_READ}. Because a role hierarchy
+ * ({@code WRITE > READ}) is configured in
+ * {@link com.example.mcpbridge.config.SecurityConfig}, WRITE key holders
+ * automatically satisfy the READ requirement.
  *
  * <p>All invocations are audit-logged by
  * {@link com.example.mcpbridge.audit.AuditLoggingAspect}.
@@ -46,7 +46,7 @@ public class ShipmentTools {
             issue type, advice message, and recommended operator action.
             Returns an error if the tracking number does not exist.
             """)
-    @PreAuthorize("hasAnyRole('READ','WRITE')")
+    @PreAuthorize("hasRole('READ')")
     public Shipment getShipmentByTrackingNumber(
             @ToolParam(description = "Unique shipment tracking number, e.g. TRK001")
             String trackingNumber) {
@@ -59,7 +59,7 @@ public class ShipmentTools {
             Returns an empty list when no shipments match — callers can distinguish this from a
             "not found" error. Results are cached for 5 minutes to reduce upstream load.
             """)
-    @PreAuthorize("hasAnyRole('READ','WRITE')")
+    @PreAuthorize("hasRole('READ')")
     public List<Shipment> getShipmentsBySeverity(
             @ToolParam(description = "Severity level to filter by. Valid values: CRITICAL, HIGH, LOW, UNKNOWN")
             String severity) {
@@ -72,7 +72,7 @@ public class ShipmentTools {
             Returns an empty list when no shipments are found for the given location.
             Useful for assessing supply-chain exposure at a hub or city affected by a disruption event.
             """)
-    @PreAuthorize("hasAnyRole('READ','WRITE')")
+    @PreAuthorize("hasRole('READ')")
     public List<Shipment> getShipmentsByLocation(
             @ToolParam(description = "Hub or city name to search, e.g. Singapore, Rotterdam, Shanghai. " +
                     "Matched against currentLocation and destinationHub (case-insensitive).")
