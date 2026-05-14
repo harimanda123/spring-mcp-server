@@ -1,0 +1,101 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: mcp-bridge-service
+
+  # Spring AI MCP Server
+  ai:
+    mcp:
+      server:
+        name: supply-chain-mcp-server
+        version: 1.0.0
+        # SSE transport is auto-configured by spring-ai-starter-mcp-server-webmvc.
+        # Default SSE endpoint:     GET  /mcp/sse
+        # Default message endpoint: POST /mcp/message
+
+# -------------------------------------------------------------------------
+# Application properties
+# -------------------------------------------------------------------------
+app:
+  supply-chain-advisor:
+    # Override with env var SUPPLY_CHAIN_ADVISOR_URL in each environment
+    base-url: ${SUPPLY_CHAIN_ADVISOR_URL:http://localhost:8080}
+    connect-timeout-ms: 5000
+    read-timeout-ms:    10000
+
+  security:
+    api-keys:
+      # IMPORTANT: Override both values via environment variables in production.
+      # These defaults are intentionally verbose so they will not be accidentally
+      # used if the env vars are missing in a real deployment.
+      read:  ${API_KEY_READ:dev-read-key-CHANGE-ME-in-production}
+      write: ${API_KEY_WRITE:dev-write-key-CHANGE-ME-in-production}
+
+  rate-limiting:
+    requests-per-minute: 60
+
+# -------------------------------------------------------------------------
+# Resilience4j — Circuit Breaker + Time Limiter
+# -------------------------------------------------------------------------
+resilience4j:
+  circuitbreaker:
+    instances:
+      shipmentApi:
+        # Open circuit after 50% failures in a 10-call sliding window
+        slidingWindowSize:                     10
+        failureRateThreshold:                  50
+        # Stay open for 30 s before allowing a probe
+        waitDurationInOpenState:               30s
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        # Record exceptions as failures
+        recordExceptions:
+          - org.springframework.web.client.RestClientException
+          - java.io.IOException
+  timelimiter:
+    instances:
+      shipmentApi:
+        timeoutDuration: 10s
+        cancelRunningFuture: true
+
+# -------------------------------------------------------------------------
+# Spring Boot Actuator
+# -------------------------------------------------------------------------
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus, circuitbreakers, caches, loggers
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: when-authorized
+  health:
+    circuitbreakers:
+      enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  info:
+    env:
+      enabled: true
+
+info:
+  app:
+    name: ${spring.application.name}
+    version: "@project.version@"
+    description: MCP Bridge Server — Supply Chain Advisor Service
+
+# -------------------------------------------------------------------------
+# Logging
+# -------------------------------------------------------------------------
+logging:
+  level:
+    com.example.mcpbridge:         INFO
+    com.example.mcpbridge.audit:   INFO
+    io.github.resilience4j:        INFO
+    org.springframework.security:  WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
