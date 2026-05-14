@@ -67,11 +67,13 @@ MCP Client (AI Agent)
 
 ## MCP Tools
 
-| Tool | REST Endpoint Bridged | Roles | Description |
+All three tools require **READ role**. Because a role hierarchy (`WRITE > READ`) is configured, WRITE key holders automatically satisfy the READ requirement.
+
+| Tool | REST Endpoint Bridged | Min Role | Description |
 |---|---|---|---|
-| `getShipmentByTrackingNumber` | `GET /api/v1/shipments/{trackingNumber}` | READ, WRITE | Fetch a single shipment by tracking number |
-| `getShipmentsBySeverity` | `GET /api/v1/shipments/severity/{severity}` | READ, WRITE | List all shipments matching a severity level (CRITICAL / HIGH / LOW / UNKNOWN) |
-| `getShipmentsByLocation` | `GET /api/v1/shipments/location/{location}` | READ, WRITE | List all shipments whose current location or destination hub matches the given name |
+| `getShipmentByTrackingNumber` | `GET /api/v1/shipments/{trackingNumber}` | READ | Fetch a single shipment by its unique tracking number |
+| `getShipmentsBySeverity` | `GET /api/v1/shipments/severity/{severity}` | READ | List all shipments matching a severity level (CRITICAL / HIGH / LOW / UNKNOWN) |
+| `getShipmentsByLocation` | `GET /api/v1/shipments/location/{location}` | READ | List all shipments whose current location or destination hub matches the given name |
 
 ---
 
@@ -227,7 +229,7 @@ X-API-Key: <your-api-key>
 | Role | Permitted Tools |
 |---|---|
 | `READ` | `getShipmentByTrackingNumber`, `getShipmentsBySeverity`, `getShipmentsByLocation` |
-| `WRITE` | All READ tools + access to protected actuator endpoints |
+| `WRITE` | All READ tools (WRITE > READ hierarchy) + access to protected actuator endpoints |
 
 Missing or invalid keys receive **HTTP 401**. Requests exceeding the rate limit receive **HTTP 429** with a `Retry-After: 60` header.
 
